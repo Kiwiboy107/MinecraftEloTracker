@@ -42,7 +42,16 @@ export default function BattleInputSection() {
     resolver: zodResolver(battleFormSchema),
     defaultValues: {
       battleType: "1v1",
+      teamAPlayer1: "",
+      teamAPlayer2: "",
+      teamAPlayer3: "",
+      teamAPlayer4: "",
+      teamBPlayer1: "",
+      teamBPlayer2: "",
+      teamBPlayer3: "",
+      teamBPlayer4: "",
       winningTeam: "A",
+      notes: "",
     },
   });
 
@@ -72,7 +81,20 @@ export default function BattleInputSection() {
         title: "Battle Recorded",
         description: "The battle has been recorded and Elo ratings have been updated.",
       });
-      form.reset();
+      form.reset({
+        battleType: "1v1",
+        teamAPlayer1: "",
+        teamAPlayer2: "",
+        teamAPlayer3: "",
+        teamAPlayer4: "",
+        teamBPlayer1: "",
+        teamBPlayer2: "",
+        teamBPlayer3: "",
+        teamBPlayer4: "",
+        winningTeam: "A",
+        notes: "",
+      });
+      setSelectedFormat("1v1");
       queryClient.invalidateQueries({ queryKey: ['/api/players'] });
       queryClient.invalidateQueries({ queryKey: ['/api/battles'] });
     },

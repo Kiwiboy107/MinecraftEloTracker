@@ -1,4 +1,6 @@
 import { players, battles, type Player, type InsertPlayer, type Battle, type InsertBattle } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Player operations
@@ -18,89 +20,78 @@ export interface IStorage {
   resetAllData(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private players: Map<number, Player>;
-  private battles: Map<number, Battle>;
-  private currentPlayerId: number;
-  private currentBattleId: number;
-
-  constructor() {
-    this.players = new Map();
-    this.battles = new Map();
-    this.currentPlayerId = 1;
-    this.currentBattleId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getPlayer(id: number): Promise<Player | undefined> {
-    return this.players.get(id);
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
   }
 
   async getPlayerByName(name: string): Promise<Player | undefined> {
-    return Array.from(this.players.values()).find(
-      (player) => player.name === name,
-    );
+    const [player] = await db.select().from(players).where(eq(players.name, name));
+    return player || undefined;
   }
 
   async getAllPlayers(): Promise<Player[]> {
-    return Array.from(this.players.values()).sort((a, b) => b.elo - a.elo);
+    const allPlayers = await db.select().from(players);
+    return allPlayers.sort((a, b) => b.elo - a.elo);
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
-    const id = this.currentPlayerId++;
-    const player: Player = {
-      ...insertPlayer,
-      id,
-      elo: insertPlayer.elo || 1200,
-      wins: 0,
-      losses: 0,
-      lastBattle: null,
-      createdAt: new Date(),
-    };
-    this.players.set(id, player);
+    const [player] = await db
+      .insert(players)
+      .values({
+        ...insertPlayer,
+        elo: insertPlayer.elo || 1200,
+      })
+      .returning();
     return player;
   }
 
   async updatePlayer(id: number, updates: Partial<Player>): Promise<Player | undefined> {
-    const player = this.players.get(id);
-    if (!player) return undefined;
-    
-    const updatedPlayer = { ...player, ...updates };
-    this.players.set(id, updatedPlayer);
-    return updatedPlayer;
+    const [player] = await db
+      .update(players)
+      .set(updates)
+      .where(eq(players.id, id))
+      .returning();
+    return player || undefined;
   }
 
   async deletePlayer(id: number): Promise<boolean> {
-    return this.players.delete(id);
+    const result = await db.delete(players).where(eq(players.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async createBattle(insertBattle: InsertBattle): Promise<Battle> {
-    const id = this.currentBattleId++;
-    const battle: Battle = {
-      ...insertBattle,
-      id,
-      createdAt: new Date(),
-    };
-    this.battles.set(id, battle);
+    const [battle] = await db
+      .insert(battles)
+      .values({
+        ...insertBattle,
+        notes: insertBattle.notes || null,
+      })
+      .returning();
     return battle;
   }
 
   async getAllBattles(): Promise<Battle[]> {
-    return Array.from(this.battles.values()).sort((a, b) => 
+    const allBattles = await db.select().from(battles);
+    return allBattles.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
   async getRecentBattles(limit: number): Promise<Battle[]> {
-    const allBattles = await this.getAllBattles();
-    return allBattles.slice(0, limit);
+    const recentBattles = await db
+      .select()
+      .from(battles)
+      .orderBy(battles.createdAt)
+      .limit(limit);
+    return recentBattles.reverse();
   }
 
   async resetAllData(): Promise<void> {
-    this.players.clear();
-    this.battles.clear();
-    this.currentPlayerId = 1;
-    this.currentBattleId = 1;
+    await db.delete(battles);
+    await db.delete(players);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
