@@ -18,8 +18,12 @@ const battleFormSchema = z.object({
   battleType: z.string().min(1, "Battle type is required"),
   teamAPlayer1: z.string().min(1, "Team A player 1 is required"),
   teamAPlayer2: z.string().optional(),
+  teamAPlayer3: z.string().optional(),
+  teamAPlayer4: z.string().optional(),
   teamBPlayer1: z.string().min(1, "Team B player 1 is required"),
   teamBPlayer2: z.string().optional(),
+  teamBPlayer3: z.string().optional(),
+  teamBPlayer4: z.string().optional(),
   winningTeam: z.enum(['A', 'B']),
   notes: z.string().optional(),
 });
@@ -46,9 +50,13 @@ export default function BattleInputSection() {
     mutationFn: async (data: BattleFormData) => {
       const teamA = [parseInt(data.teamAPlayer1)];
       if (data.teamAPlayer2) teamA.push(parseInt(data.teamAPlayer2));
+      if (data.teamAPlayer3) teamA.push(parseInt(data.teamAPlayer3));
+      if (data.teamAPlayer4) teamA.push(parseInt(data.teamAPlayer4));
 
       const teamB = [parseInt(data.teamBPlayer1)];
       if (data.teamBPlayer2) teamB.push(parseInt(data.teamBPlayer2));
+      if (data.teamBPlayer3) teamB.push(parseInt(data.teamBPlayer3));
+      if (data.teamBPlayer4) teamB.push(parseInt(data.teamBPlayer4));
 
       return apiRequest('POST', '/api/battles', {
         teamA,
@@ -91,12 +99,28 @@ export default function BattleInputSection() {
       const player = players.find(p => p.id.toString() === formData.teamAPlayer2);
       if (player) teamA.push(player);
     }
+    if (formData.teamAPlayer3) {
+      const player = players.find(p => p.id.toString() === formData.teamAPlayer3);
+      if (player) teamA.push(player);
+    }
+    if (formData.teamAPlayer4) {
+      const player = players.find(p => p.id.toString() === formData.teamAPlayer4);
+      if (player) teamA.push(player);
+    }
     if (formData.teamBPlayer1) {
       const player = players.find(p => p.id.toString() === formData.teamBPlayer1);
       if (player) teamB.push(player);
     }
     if (formData.teamBPlayer2) {
       const player = players.find(p => p.id.toString() === formData.teamBPlayer2);
+      if (player) teamB.push(player);
+    }
+    if (formData.teamBPlayer3) {
+      const player = players.find(p => p.id.toString() === formData.teamBPlayer3);
+      if (player) teamB.push(player);
+    }
+    if (formData.teamBPlayer4) {
+      const player = players.find(p => p.id.toString() === formData.teamBPlayer4);
       if (player) teamB.push(player);
     }
 
@@ -115,7 +139,10 @@ export default function BattleInputSection() {
 
   const onSubmit = (data: BattleFormData) => {
     // Validate that teams don't have duplicate players
-    const allPlayers = [data.teamAPlayer1, data.teamAPlayer2, data.teamBPlayer1, data.teamBPlayer2].filter(Boolean);
+    const allPlayers = [
+      data.teamAPlayer1, data.teamAPlayer2, data.teamAPlayer3, data.teamAPlayer4,
+      data.teamBPlayer1, data.teamBPlayer2, data.teamBPlayer3, data.teamBPlayer4
+    ].filter(Boolean);
     const uniquePlayers = new Set(allPlayers);
     if (allPlayers.length !== uniquePlayers.size) {
       toast({
@@ -129,7 +156,21 @@ export default function BattleInputSection() {
     recordBattleMutation.mutate(data);
   };
 
-  const needsSecondPlayer = selectedFormat !== "1v1";
+  // Determine how many players each team needs based on battle format
+  const getTeamSizes = (format: string) => {
+    switch (format) {
+      case "1v1": return { teamA: 1, teamB: 1 };
+      case "2v1": return { teamA: 2, teamB: 1 };
+      case "2v2": return { teamA: 2, teamB: 2 };
+      case "3v2": return { teamA: 3, teamB: 2 };
+      case "3v3": return { teamA: 3, teamB: 3 };
+      case "4v2": return { teamA: 4, teamB: 2 };
+      case "4v4": return { teamA: 4, teamB: 4 };
+      default: return { teamA: 1, teamB: 1 };
+    }
+  };
+
+  const teamSizes = getTeamSizes(selectedFormat);
 
   return (
     <section id="battles" className="gaming-card rounded-xl p-6">
@@ -171,9 +212,12 @@ export default function BattleInputSection() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="1v1">1v1 Battle</SelectItem>
-                          <SelectItem value="2v2">2v2 Team Battle</SelectItem>
                           <SelectItem value="2v1">2v1 Battle</SelectItem>
+                          <SelectItem value="2v2">2v2 Team Battle</SelectItem>
+                          <SelectItem value="3v2">3v2 Battle</SelectItem>
                           <SelectItem value="3v3">3v3 Team Battle</SelectItem>
+                          <SelectItem value="4v2">4v2 Battle</SelectItem>
+                          <SelectItem value="4v4">4v4 Team Battle</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -182,7 +226,8 @@ export default function BattleInputSection() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-4">
-                    <h4 className="text-gray-300 font-semibold">Team A</h4>
+                    <h4 className="text-gray-300 font-semibold">Team A ({teamSizes.teamA} players)</h4>
+                    
                     <FormField
                       control={form.control}
                       name="teamAPlayer1"
@@ -205,20 +250,73 @@ export default function BattleInputSection() {
                         </FormItem>
                       )}
                     />
-                    {needsSecondPlayer && (
+
+                    {teamSizes.teamA >= 2 && (
                       <FormField
                         control={form.control}
                         name="teamAPlayer2"
                         render={({ field }) => (
                           <FormItem>
-                            <Select value={field.value || ""} onValueChange={field.onChange}>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
                               <FormControl>
                                 <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
-                                  <SelectValue placeholder="Select Player 2 (Optional)" />
+                                  <SelectValue placeholder="Select Player 2" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                                {players.map((player) => (
+                                  <SelectItem key={player.id} value={player.id.toString()}>
+                                    {player.name} ({player.elo})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {teamSizes.teamA >= 3 && (
+                      <FormField
+                        control={form.control}
+                        name="teamAPlayer3"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                              <FormControl>
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                                  <SelectValue placeholder="Select Player 3" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {players.map((player) => (
+                                  <SelectItem key={player.id} value={player.id.toString()}>
+                                    {player.name} ({player.elo})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {teamSizes.teamA >= 4 && (
+                      <FormField
+                        control={form.control}
+                        name="teamAPlayer4"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                              <FormControl>
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                                  <SelectValue placeholder="Select Player 4" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
                                 {players.map((player) => (
                                   <SelectItem key={player.id} value={player.id.toString()}>
                                     {player.name} ({player.elo})
@@ -233,7 +331,8 @@ export default function BattleInputSection() {
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="text-gray-300 font-semibold">Team B</h4>
+                    <h4 className="text-gray-300 font-semibold">Team B ({teamSizes.teamB} players)</h4>
+                    
                     <FormField
                       control={form.control}
                       name="teamBPlayer1"
@@ -256,20 +355,73 @@ export default function BattleInputSection() {
                         </FormItem>
                       )}
                     />
-                    {needsSecondPlayer && (
+
+                    {teamSizes.teamB >= 2 && (
                       <FormField
                         control={form.control}
                         name="teamBPlayer2"
                         render={({ field }) => (
                           <FormItem>
-                            <Select value={field.value || ""} onValueChange={field.onChange}>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
                               <FormControl>
                                 <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
-                                  <SelectValue placeholder="Select Player 2 (Optional)" />
+                                  <SelectValue placeholder="Select Player 2" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
+                                {players.map((player) => (
+                                  <SelectItem key={player.id} value={player.id.toString()}>
+                                    {player.name} ({player.elo})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {teamSizes.teamB >= 3 && (
+                      <FormField
+                        control={form.control}
+                        name="teamBPlayer3"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                              <FormControl>
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                                  <SelectValue placeholder="Select Player 3" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {players.map((player) => (
+                                  <SelectItem key={player.id} value={player.id.toString()}>
+                                    {player.name} ({player.elo})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {teamSizes.teamB >= 4 && (
+                      <FormField
+                        control={form.control}
+                        name="teamBPlayer4"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                              <FormControl>
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                                  <SelectValue placeholder="Select Player 4" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
                                 {players.map((player) => (
                                   <SelectItem key={player.id} value={player.id.toString()}>
                                     {player.name} ({player.elo})
