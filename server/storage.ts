@@ -15,6 +15,8 @@ export interface IStorage {
   createBattle(battle: InsertBattle): Promise<Battle>;
   getAllBattles(): Promise<Battle[]>;
   getRecentBattles(limit: number): Promise<Battle[]>;
+  getBattle(id: number): Promise<Battle | undefined>;
+  deleteBattle(id: number): Promise<boolean>;
   
   // Utility operations
   resetAllData(): Promise<void>;
@@ -86,6 +88,16 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(battles.createdAt))
       .limit(limit);
     return recentBattles;
+  }
+
+  async getBattle(id: number): Promise<Battle | undefined> {
+    const [battle] = await db.select().from(battles).where(eq(battles.id, id));
+    return battle || undefined;
+  }
+
+  async deleteBattle(id: number): Promise<boolean> {
+    const result = await db.delete(battles).where(eq(battles.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async resetAllData(): Promise<void> {

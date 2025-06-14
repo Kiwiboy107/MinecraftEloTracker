@@ -122,6 +122,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/battles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get battle details before deletion to reverse Elo changes
+      const battle = await storage.getBattle(id);
+      if (!battle) {
+        return res.status(404).json({ message: "Battle not found" });
+      }
+
+      // Reverse the Elo changes
+      const eloChanges = battle.eloChanges as Record<string, number>;
+      for (const [playerIdStr, eloChange] of Object.entries(eloChanges)) {
+        const playerId = parseInt(playerIdStr);
+        const player = await storage.getPlayer(playerId);
+        if (player) {
+          const teamA = battle.teamA as number[];
+          const teamB = battle.teamB as number[];
+          const wasWinner = (battle.winningTeam === 'A' && teamA.includes(playerId)) ||
+                           (battle.winningTeam === 'B' && teamB.includes(playerId));
+          
+          await storage.updatePlayer(playerId, {
+            elo: player.elo - eloChange, // Reverse the Elo change
+            wins: player.wins - (wasWinner ? 1 : 0), // Reverse win/loss counts
+            losses: player.losses - (wasWinner ? 0 : 1),
+          });
+        }
+      }
+
+      // Delete the battle
+      const success = await storage.deleteBattle(id);
+      if (!success) {
+        return res.status(404).json({ message: "Battle not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Battle deletion error:', error);
+      res.status(500).json({ message: "Failed to delete battle" });
+    }
+  });
+
   // Statistics routes
   app.get("/api/statistics", async (req, res) => {
     try {

@@ -1,8 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { TrendingUp, PieChart, Calendar, BarChart3, Swords } from "lucide-react";
+import { TrendingUp, PieChart, Calendar, BarChart3, Swords, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Player, Battle } from "@shared/schema";
 
 // Chart.js imports
@@ -33,6 +36,8 @@ ChartJS.register(
 );
 
 export default function StatisticsSection() {
+  const { toast } = useToast();
+  
   const { data: players = [] } = useQuery<Player[]>({
     queryKey: ['/api/players'],
   });
@@ -44,6 +49,33 @@ export default function StatisticsSection() {
   const { data: recentBattles = [] } = useQuery<Battle[]>({
     queryKey: ['/api/battles/recent'],
   });
+
+  const deleteBattleMutation = useMutation({
+    mutationFn: async (battleId: number) => {
+      return apiRequest('DELETE', `/api/battles/${battleId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Battle Deleted",
+        description: "The battle has been removed and Elo changes have been reversed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/players'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/battles'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete battle",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteBattle = (battleId: number, battleDescription: string) => {
+    if (window.confirm(`Are you sure you want to delete this battle: ${battleDescription}? This will reverse all Elo changes from this battle.`)) {
+      deleteBattleMutation.mutate(battleId);
+    }
+  };
 
   // Calculate battle type distribution
   const battleTypeData = battles.reduce((acc, battle) => {
@@ -156,10 +188,10 @@ export default function StatisticsSection() {
     return `${teamAStr} vs ${teamBStr}`;
   };
 
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
+  const formatTime = (date: Date | string) => {
+    const battleDate = typeof date === 'string' ? new Date(date) : date;
     const now = new Date();
-    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    const diffHours = Math.floor((now.getTime() - battleDate.getTime()) / (1000 * 60 * 60));
     
     if (diffHours < 1) return "Just now";
     if (diffHours < 24) return `${diffHours} hours ago`;
@@ -250,8 +282,19 @@ export default function StatisticsSection() {
                         <div className="text-xs text-gray-400">{formatTime(battle.createdAt)}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-mono text-[var(--minecraft-green)]">
-                      ±{maxEloChange}
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm font-mono text-[var(--minecraft-green)]">
+                        ±{maxEloChange}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteBattle(battle.id, formatBattleDescription(battle))}
+                        disabled={deleteBattleMutation.isPending}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 );
