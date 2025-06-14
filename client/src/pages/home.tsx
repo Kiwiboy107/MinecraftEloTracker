@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Swords, Plus, UserPlus, Trash2, Users, BarChart3 } from "lucide-react";
+import { Swords, Plus, UserPlus, Trash2, Users, BarChart3, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RankingsSection from "@/components/rankings-section";
 import BattleInputSection from "@/components/battle-input-section";
 import StatisticsSection from "@/components/statistics-section";
 import PlayerManagementSection from "@/components/player-management-section";
+import BattleHistorySection from "@/components/battle-history-section";
 import ResetModal from "@/components/reset-modal";
 
 export default function Home() {
@@ -41,6 +42,12 @@ export default function Home() {
                 className="text-gray-300 hover:text-[var(--minecraft-green)] transition-colors"
               >
                 Battle Input
+              </button>
+              <button 
+                onClick={() => scrollToSection('battle-history')}
+                className="text-gray-300 hover:text-[var(--minecraft-green)] transition-colors"
+              >
+                Battle History
               </button>
               <button 
                 onClick={() => scrollToSection('statistics')}
@@ -90,8 +97,9 @@ export default function Home() {
         </section>
 
         <RankingsSection />
-        <StatisticsSection />
         <BattleInputSection />
+        <BattleHistorySection />
+        <StatisticsSection />
         <PlayerManagementSection />
       </main>
 
