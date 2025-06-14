@@ -103,6 +103,9 @@ This is a full-stack web application for tracking and managing Minecraft PvP bat
 
 Changelog:
 - June 14, 2025. Initial setup
+- June 14, 2025. Migrated from in-memory storage to PostgreSQL database with Drizzle ORM
+- June 14, 2025. Fixed battle recording form state issues and added missing battle formats (3v2, 4v2, 4v4)
+- June 14, 2025. Fixed Select component errors with empty values by using "none" placeholder values
 
 ## User Preferences
 

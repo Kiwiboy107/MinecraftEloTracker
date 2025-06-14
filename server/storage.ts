@@ -83,9 +83,9 @@ export class DatabaseStorage implements IStorage {
     const recentBattles = await db
       .select()
       .from(battles)
-      .orderBy(battles.createdAt)
+      .orderBy(desc(battles.createdAt))
       .limit(limit);
-    return recentBattles.reverse();
+    return recentBattles;
   }
 
   async resetAllData(): Promise<void> {
