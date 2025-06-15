@@ -106,6 +106,10 @@ Changelog:
 - June 14, 2025. Migrated from in-memory storage to PostgreSQL database with Drizzle ORM
 - June 14, 2025. Fixed battle recording form state issues and added missing battle formats (3v2, 4v2, 4v4)
 - June 14, 2025. Fixed Select component errors with empty values by using "none" placeholder values
+- June 15, 2025. Added sortable columns to rankings table (Elo, wins, losses, win rate) with visual sort indicators
+- June 15, 2025. Extended statistics with wins vs losses bar chart
+- June 15, 2025. Added "by Kiwiboy107" branding with Replit logo in header
+- June 15, 2025. Implemented network graph visualization showing player battle connections and rivalries
 
 ## User Preferences
 

@@ -359,16 +359,17 @@ export default function StatisticsSection() {
                 linkWidth="width"
                 linkDirectionalParticles={1}
                 linkDirectionalParticleWidth={2}
-                nodeCanvasObject={(node, ctx, globalScale) => {
+                nodeCanvasObject={(node: any, ctx: any, globalScale: number) => {
                   const label = node.name;
                   const fontSize = 12/globalScale;
                   ctx.font = `${fontSize}px Sans-Serif`;
                   
                   const textWidth = ctx.measureText(label).width;
-                  const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+                  const bckgWidth = textWidth + fontSize * 0.2;
+                  const bckgHeight = fontSize + fontSize * 0.2;
                   
                   ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                  ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
+                  ctx.fillRect(node.x - bckgWidth / 2, node.y - bckgHeight / 2, bckgWidth, bckgHeight);
                   
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
