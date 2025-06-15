@@ -30,6 +30,14 @@ export default function Home() {
                 Minecraft PvP Rankings
               </h1>
             </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-400">
+              <span>by Kiwiboy107</span>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/>
+                <path d="M12 5.5c-3.584 0-6.5 2.916-6.5 6.5s2.916 6.5 6.5 6.5 6.5-2.916 6.5-6.5-2.916-6.5-6.5-6.5zm0 11c-2.481 0-4.5-2.019-4.5-4.5s2.019-4.5 4.5-4.5 4.5 2.019 4.5 4.5-2.019 4.5-4.5 4.5z"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
             <nav className="hidden md:flex space-x-6">
               <button 
                 onClick={() => scrollToSection('rankings')}
