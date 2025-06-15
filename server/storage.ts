@@ -1,8 +1,13 @@
-import { players, battles, type Player, type InsertPlayer, type Battle, type InsertBattle } from "@shared/schema";
+import { players, battles, users, type Player, type InsertPlayer, type Battle, type InsertBattle, type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
   // Player operations
   getPlayer(id: number): Promise<Player | undefined>;
   getPlayerByName(name: string): Promise<Player | undefined>;
@@ -23,6 +28,24 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
   async getPlayer(id: number): Promise<Player | undefined> {
     const [player] = await db.select().from(players).where(eq(players.id, id));
     return player || undefined;

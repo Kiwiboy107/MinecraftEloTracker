@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -9,6 +9,14 @@ export const players = pgTable("players", {
   wins: integer("wins").notNull().default(0),
   losses: integer("losses").notNull().default(0),
   lastBattle: timestamp("last_battle"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -33,6 +41,11 @@ export const insertPlayerSchema = createInsertSchema(players).omit({
   elo: z.number().min(100).max(3000).optional(),
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertBattleSchema = createInsertSchema(battles).omit({
   id: true,
   createdAt: true,
@@ -44,6 +57,13 @@ export const insertBattleSchema = createInsertSchema(battles).omit({
   notes: z.string().optional(),
 });
 
+export const loginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Player = typeof players.$inferSelect;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Battle = typeof battles.$inferSelect;
