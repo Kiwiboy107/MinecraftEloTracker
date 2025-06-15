@@ -219,6 +219,27 @@ export default function StatisticsSection() {
     );
   }
 
+  // Wins vs Losses chart data
+  const winsLossesData = {
+    labels: players.map(p => p.name),
+    datasets: [
+      {
+        label: 'Wins',
+        data: players.map(p => p.wins),
+        backgroundColor: 'hsl(142, 86%, 28%)',
+        borderColor: 'hsl(142, 86%, 25%)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Losses',
+        data: players.map(p => p.losses),
+        backgroundColor: 'hsl(0, 84%, 60%)',
+        borderColor: 'hsl(0, 84%, 55%)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
   return (
     <section id="statistics" className="grid md:grid-cols-2 gap-6">
       <Card className="gaming-card">
@@ -231,6 +252,20 @@ export default function StatisticsSection() {
         <CardContent>
           <div className="h-64">
             <Line data={eloProgressionData} options={chartOptions} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="gaming-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold text-gray-100 flex items-center space-x-2">
+            <BarChart3 className="text-green-500" />
+            <span>Wins vs Losses</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64">
+            <Bar data={winsLossesData} options={chartOptions} />
           </div>
         </CardContent>
       </Card>

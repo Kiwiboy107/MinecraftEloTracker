@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Clock } from "lucide-react";
+import { Trophy, Clock, ChevronUp, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import type { Player } from "@shared/schema";
+
+type SortField = 'elo' | 'wins' | 'losses' | 'winRate';
+type SortDirection = 'asc' | 'desc';
 
 const getRankIcon = (rank: number) => {
   if (rank === 1) return "🥇";
@@ -19,6 +24,9 @@ const getRankColor = (rank: number) => {
 };
 
 export default function RankingsSection() {
+  const [sortField, setSortField] = useState<SortField>('elo');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   const { data: players, isLoading } = useQuery<Player[]>({
     queryKey: ['/api/players'],
   });
@@ -37,9 +45,49 @@ export default function RankingsSection() {
 
   const calculateWinRate = (wins: number, losses: number) => {
     const total = wins + losses;
-    if (total === 0) return "0%";
-    return `${((wins / total) * 100).toFixed(1)}%`;
+    if (total === 0) return 0;
+    return (wins / total) * 100;
   };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'losses' ? 'asc' : 'desc'); // Losses should default to ascending (lower is better)
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />;
+  };
+
+  const sortedPlayers = players ? [...players].sort((a, b) => {
+    let aValue: number;
+    let bValue: number;
+
+    switch (sortField) {
+      case 'elo':
+        aValue = a.elo;
+        bValue = b.elo;
+        break;
+      case 'wins':
+        aValue = a.wins;
+        bValue = b.wins;
+        break;
+      case 'losses':
+        aValue = a.losses;
+        bValue = b.losses;
+        break;
+      case 'winRate':
+        aValue = calculateWinRate(a.wins, a.losses);
+        bValue = calculateWinRate(b.wins, b.losses);
+        break;
+    }
+
+    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+  }) : [];
 
   return (
     <section id="rankings" className="gaming-card rounded-xl p-6">
@@ -84,15 +132,55 @@ export default function RankingsSection() {
                 <tr className="border-b border-gray-600">
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Rank</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Player</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-300">Elo Rating</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-300">Wins</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-300">Losses</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-300">Win Rate</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('elo')}
+                      className="text-gray-300 hover:text-[var(--minecraft-green)] p-0 h-auto font-semibold flex items-center space-x-1"
+                    >
+                      <span>Elo Rating</span>
+                      {getSortIcon('elo')}
+                    </Button>
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('wins')}
+                      className="text-gray-300 hover:text-[var(--minecraft-green)] p-0 h-auto font-semibold flex items-center space-x-1"
+                    >
+                      <span>Wins</span>
+                      {getSortIcon('wins')}
+                    </Button>
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('losses')}
+                      className="text-gray-300 hover:text-[var(--minecraft-green)] p-0 h-auto font-semibold flex items-center space-x-1"
+                    >
+                      <span>Losses</span>
+                      {getSortIcon('losses')}
+                    </Button>
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-300">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('winRate')}
+                      className="text-gray-300 hover:text-[var(--minecraft-green)] p-0 h-auto font-semibold flex items-center space-x-1"
+                    >
+                      <span>Win Rate</span>
+                      {getSortIcon('winRate')}
+                    </Button>
+                  </th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-300">Last Battle</th>
                 </tr>
               </thead>
               <tbody>
-                {players.map((player, index) => {
+                {sortedPlayers.map((player, index) => {
                   const rank = index + 1;
                   const rankIcon = getRankIcon(rank);
                   const rankColor = getRankColor(rank);
@@ -123,10 +211,14 @@ export default function RankingsSection() {
                         <span className="text-red-400 font-semibold">{player.losses}</span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="font-semibold text-gray-200">{calculateWinRate(player.wins, player.losses)}</span>
+                        <span className="font-semibold text-gray-200">
+                          {calculateWinRate(player.wins, player.losses) === 0 ? "0%" : `${calculateWinRate(player.wins, player.losses).toFixed(1)}%`}
+                        </span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="text-gray-400 text-sm">{formatLastBattle(player.lastBattle)}</span>
+                        <span className="text-gray-400 text-sm">
+                          {formatLastBattle(player.lastBattle ? new Date(player.lastBattle).toISOString() : null)}
+                        </span>
                       </td>
                     </tr>
                   );
